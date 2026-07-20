@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AMN Pulse Dashboard - Quarter Summary 2024-2026</title>
+<title>AMN Pulse Dashboard (Supabase) - Quarter Summary</title>
 <script>/*!
  * Chart.js v4.4.1
  * https://www.chartjs.org
@@ -259,7 +259,7 @@
     .grid2, .grid2b, .kpis, .clinic-detail.show { grid-template-columns: 1fr; }
   }
 
-  body.locked { overflow: hidden; height: 100vh; }
+
   .lock-overlay {
     position: fixed;
     inset: 0;
@@ -325,52 +325,58 @@
   .lock-error.show { display: block; }
 </style>
 </head>
-<body class="locked">
-
-<div id="lockOverlay" class="lock-overlay">
-  <div class="lock-card">
-    <div class="lock-icon">&#128274;</div>
-    <div class="lock-title">AMN Pulse Dashboard</div>
-    <div class="lock-sub">กรุณาใส่รหัสผ่านเพื่อเข้าดูข้อมูล</div>
-    <input type="password" id="lockInput" class="lock-input" placeholder="รหัสผ่าน" inputmode="numeric">
-    <button id="lockBtn" class="lock-btn">เข้าสู่ระบบ</button>
-    <div id="lockError" class="lock-error">รหัสผ่านไม่ถูกต้อง</div>
-  </div>
-</div>
+<body>
 
 <noscript>
   <div style="position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:#0a0e1a;color:#fbbf24;padding:20px;text-align:center;font-size:14px;font-weight:600;">
-    หน้านี้ต้องเปิดผ่านเบราว์เซอร์ที่รองรับ JavaScript (เช่น Safari) เพื่อปลดล็อกและแสดงข้อมูล
+    หน้านี้ต้องเปิดผ่านเบราว์เซอร์ที่รองรับ JavaScript เพื่อแสดงกราฟและตาราง
   </div>
 </noscript>
+
+<div id="loginOverlay" class="lock-overlay">
+  <form class="lock-card" id="loginForm">
+    <div class="lock-icon">&#128274;</div>
+    <div class="lock-title">AMN Pulse Dashboard</div>
+    <div class="lock-sub">เข้าสู่ระบบด้วยบัญชีที่ได้รับสิทธิ์</div>
+    <input type="email" id="loginEmail" class="lock-input" placeholder="อีเมล" style="letter-spacing:normal; text-align:left;" required autocomplete="username">
+    <input type="password" id="loginPassword" class="lock-input" placeholder="รหัสผ่าน" style="letter-spacing:normal; text-align:left;" required autocomplete="current-password">
+    <button type="submit" class="lock-btn">เข้าสู่ระบบ</button>
+    <div id="loginError" class="lock-error"></div>
+  </form>
+</div>
+
+<div id="appRoot" style="display:none;">
 
 <div class="header">
   <div>
     <h1>AMN Pulse &mdash; Quarter Summary Dashboard</h1>
-    <div class="subtitle">ข้อมูลรายไตรมาส 2024 Q1 &ndash; 2026 Q3 &middot; อัปเดตล่าสุดจากไฟล์ที่แนบ</div>
+    <div class="subtitle" id="subtitleText">ข้อมูลรายไตรมาส &middot; ดึงข้อมูลสดจาก Supabase</div>
   </div>
-  <div class="pill">คลินิกทั้งหมด 43 ราย &middot; Active 35 ราย</div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <div class="pill" id="headerPill">กำลังโหลด...</div>
+    <button id="logoutBtn" class="pill" style="cursor:pointer; border:1px solid var(--border); background:var(--card2);">ออกจากระบบ</button>
+  </div>
 </div>
 
 <div class="kpis">
   <div class="kpi">
     <div class="label">จำนวนคลินิกทั้งหมด</div>
-    <div class="value">43</div>
-    <div class="sub">มีรายได้ 35 ราย</div>
+    <div class="value" id="kpiTotalClinics">-</div>
+    <div class="sub" id="kpiActiveSub">-</div>
   </div>
   <div class="kpi">
     <div class="label">รายได้รวมทั้งหมด (Purchase)</div>
-    <div class="value accent">$2,321,973</div>
-    <div class="sub">รวม 8 ไตรมาส</div>
+    <div class="value accent" id="kpiTotalRevenue">-</div>
+    <div class="sub" id="kpiQuartersSub">-</div>
   </div>
   <div class="kpi">
     <div class="label">Pulse รวมทั้งหมด</div>
-    <div class="value amber">2,541,000</div>
+    <div class="value amber" id="kpiTotalPulse">-</div>
     <div class="sub">ทุกคลินิกรวมกัน</div>
   </div>
   <div class="kpi">
     <div class="label">รายได้เฉลี่ย/คลินิก (Active)</div>
-    <div class="value violet">$66,342</div>
+    <div class="value violet" id="kpiAvgRevenue">-</div>
     <div class="sub">เฉพาะคลินิกที่มีรายได้</div>
   </div>
 </div>
@@ -380,49 +386,6 @@
     <label for="clinicSelect">🔎 เลือกคลินิกเพื่อดูรายละเอียด:</label>
     <select id="clinicSelect">
       <option value="">-- เลือกคลินิก --</option>
-      <option value="100222@LTD">APEX MEDICAL CENTER CO.,LTD. CO.LTD</option>
-<option value="100074@LTD">Aesthetic Answer Co.,Ltd Answer</option>
-<option value="100278@LTD">All Inclusive Beauty Co.,Ltd. / Dr. Fruit Clinic Kunathathorn</option>
-<option value="100122@LTD">Anda Group Noonkhan</option>
-<option value="100720@LTD">Astraco Medical Networks Ltd Krittikakul</option>
-<option value="100041@LTD">BEAMED CO., LTD. Kanjanapornsin</option>
-<option value="100351@LTD">Bambini clinic/ PAWITRA SOONTHORNRAK SOONTHORNRAK</option>
-<option value="100137@LTD">CHUTHATIP MEDICA LIMITED PARTNERSHIP Yingcharoenpasuk</option>
-<option value="100235@LTD">Casa Prima Clinic Sherdpongtragool</option>
-<option value="100717@LTD">DERMALYN CO., LTD / Dr.Naphan Buarabporn Buarabporn</option>
-<option value="100707@LTD">DR. JOOU CO., LTD/ Dr.JOOU clinic</option>
-<option value="100098@LTD">Dr. Kamphon Socharoentam Socharoentam</option>
-<option value="100634@LTD">Dr. Omm Clinic Vasinanukorn</option>
-<option value="100187@LTD">Dr. Sunida Yuthayothin, MD. YUTHAYOTIN</option>
-<option value="100072@LTD">Dr. Supranee Clinic Vudhichamnong</option>
-<option value="100059@LTD">Dr. Wichai Clinic Hongcharu</option>
-<option value="100112@LTD">Dr. Worapon Sukeewatana/Beauty Expert Clinic sukeewatana</option>
-<option value="100202@LTD">Government Customer Kanjanapornsin</option>
-<option value="100274@LTD">LPK Aesthetic Co., Ltd. / Privato Clinic Krudngern</option>
-<option value="100162@LTD">Lively Healthcare Co., Ltd. -</option>
-<option value="100321@LTD">Lumilux group Sasitorn</option>
-<option value="100190@LTD">ME PLAN DEE CO., LTD. Sriakkrapong</option>
-<option value="100308@LTD">MOR YING CLINIC COMPANY LIMITED / Mor Ying Clini Singyabut</option>
-<option value="100207@LTD">Mediwelle Co., Ltd. Thanakitpathompong</option>
-<option value="100407@LTD">Meseon Kim/ Origene clinic Kim</option>
-<option value="Miss Wanlaya">Miss Wanlaya</option>
-<option value="100456@LTD">Modiolistics clinic / DENARIN CO., LTD Visutjindaporn</option>
-<option value="100163@LTD">Patharaporn Juyyim Juyyim</option>
-<option value="100264@LTD">Pruksaclinic Holding Co., Ltd. Attakonpan</option>
-<option value="100253@LTD">SIRIVEJ MEDICAL CO.,LTD. SIRIVEJ MEDICAL CO.,LTD.</option>
-<option value="100338@LTD">SSN AESTHETIQUE COMPANY LIMITED COMPANY LIMITED</option>
-<option value="100127@LTD">Setthakarn Attakonpan Attakonpan</option>
-<option value="100095@LTD">Smith Clinicvejchakam Co., Ltd. (Head office) Arayaskul</option>
-<option value="100699@LTD">T.J.M Wellness</option>
-<option value="100270@LTD">THANTHEE DERMATOL CO., LTD. Rattananukrom</option>
-<option value="100759@LTD">THE KLINIQUE MEDICAL CLINIC Public Company Limit Public Company Limited.</option>
-<option value="100426@LTD">The Dermis Co., Ltd / Demis clinic Clinic</option>
-<option value="100161@LTD">Thitima Cosmed Co., Ltd. Indra</option>
-<option value="100700@LTD">Vansantvoord Hospital</option>
-<option value="100336@LTD">Vitallife Corporation Limited .</option>
-<option value="100284@LTD">Viva Clinic/ Dr. Sansanee Saritvejworakul Saritvejvorakul</option>
-<option value="100329@LTD">YAN HEE INTERNATIONAL HOSPITAL .</option>
-<option value="100128@LTD">iSky Center Co., Ltd. Wanitphakdeedecha</option>
     </select>
   </div>
   <div class="clinic-detail" id="clinicDetail">
@@ -476,235 +439,216 @@
   <div class="table-wrap">
   <table id="dataTable">
     <thead>
-      <tr>
+      <tr id="tableHeadRow">
         <th data-key="name">Clinic Name</th>
-        <th data-key="" class="num">2024 Q1</th><th data-key="" class="num">2024 Q2</th><th data-key="" class="num">2024 Q3</th><th data-key="" class="num">2024 Q4</th><th data-key="" class="num">2025 Q1</th><th data-key="" class="num">2025 Q2</th><th data-key="" class="num">2025 Q3</th><th data-key="" class="num">2025 Q4</th><th data-key="" class="num">2026 Q1</th><th data-key="" class="num">2026 Q2</th><th data-key="" class="num">2026 Q3</th>
         <th data-key="purchase" class="num">Purchase (รวม)</th>
         <th data-key="pulse" class="num">Total Pulse</th>
       </tr>
     </thead>
-    <tbody id="tableBody"><tr data-user="100426@LTD"><td class="name-cell" title="The Dermis Co., Ltd / Demis clinic Clinic">The Dermis Co., Ltd / Demis clinic Clinic</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">52,680</td><td class="num">85,395</td><td class="num">105,360</td><td class="num">131,700</td><td class="num">184,380</td><td class="num">&mdash;</td><td class="num"><strong>585,855</strong></td><td class="num"><span class="badge">665,000</span></td></tr>
-<tr data-user="100059@LTD"><td class="name-cell" title="Dr. Wichai Clinic Hongcharu">Dr. Wichai Clinic Hongcharu</td><td class="num">22,389</td><td class="num">44,778</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">52,680</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>225,207</strong></td><td class="num"><span class="badge">270,000</span></td></tr>
-<tr data-user="100264@LTD"><td class="name-cell" title="Pruksaclinic Holding Co., Ltd. Attakonpan">Pruksaclinic Holding Co., Ltd. Attakonpan</td><td class="num">26,340</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num"><strong>180,429</strong></td><td class="num"><span class="badge">210,000</span></td></tr>
-<tr data-user="100336@LTD"><td class="name-cell" title="Vitallife Corporation Limited .">Vitallife Corporation Limited .</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>158,040</strong></td><td class="num"><span class="badge">180,000</span></td></tr>
-<tr data-user="100207@LTD"><td class="name-cell" title="Mediwelle Co., Ltd. Thanakitpathompong">Mediwelle Co., Ltd. Thanakitpathompong</td><td class="num">20,253</td><td class="num">6,375</td><td class="num">37,215</td><td class="num">&mdash;</td><td class="num">41,760</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">15,420</td><td class="num"><strong>153,738</strong></td><td class="num"><span class="badge">155,000</span></td></tr>
-<tr data-user="100456@LTD"><td class="name-cell" title="Modiolistics clinic / DENARIN CO., LTD Visutjindaporn">Modiolistics clinic / DENARIN CO., LTD Visutjindaporn</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>105,360</strong></td><td class="num"><span class="badge">120,000</span></td></tr>
-<tr data-user="100284@LTD"><td class="name-cell" title="Viva Clinic/ Dr. Sansanee Saritvejworakul Saritvejvorakul">Viva Clinic/ Dr. Sansanee Saritvejworakul Saritvejvorakul</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">32,715</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">39,090</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>87,225</strong></td><td class="num"><span class="badge">90,000</span></td></tr>
-<tr data-user="100270@LTD"><td class="name-cell" title="THANTHEE DERMATOL CO., LTD. Rattananukrom">THANTHEE DERMATOL CO., LTD. Rattananukrom</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>68,100</strong></td><td class="num"><span class="badge">75,000</span></td></tr>
-<tr data-user="100072@LTD"><td class="name-cell" title="Dr. Supranee Clinic Vudhichamnong">Dr. Supranee Clinic Vudhichamnong</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">32,715</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>67,854</strong></td><td class="num"><span class="badge">75,000</span></td></tr>
-<tr data-user="100095@LTD"><td class="name-cell" title="Smith Clinicvejchakam Co., Ltd. (Head office) Arayaskul">Smith Clinicvejchakam Co., Ltd. (Head office) Arayaskul</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num"><strong>58,215</strong></td><td class="num"><span class="badge">55,000</span></td></tr>
-<tr data-user="100190@LTD"><td class="name-cell" title="ME PLAN DEE CO., LTD. Sriakkrapong">ME PLAN DEE CO., LTD. Sriakkrapong</td><td class="num">&mdash;</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>48,729</strong></td><td class="num"><span class="badge">60,000</span></td></tr>
-<tr data-user="100278@LTD"><td class="name-cell" title="All Inclusive Beauty Co.,Ltd. / Dr. Fruit Clinic Kunathathorn">All Inclusive Beauty Co.,Ltd. / Dr. Fruit Clinic Kunathathorn</td><td class="num">6,375</td><td class="num">4,500</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>42,750</strong></td><td class="num"><span class="badge">33,000</span></td></tr>
-<tr data-user="100162@LTD"><td class="name-cell" title="Lively Healthcare Co., Ltd. -">Lively Healthcare Co., Ltd. -</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">12,750</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">12,750</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>38,250</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100329@LTD"><td class="name-cell" title="YAN HEE INTERNATIONAL HOSPITAL .">YAN HEE INTERNATIONAL HOSPITAL .</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>37,215</strong></td><td class="num"><span class="badge">35,000</span></td></tr>
-<tr data-user="100187@LTD"><td class="name-cell" title="Dr. Sunida Yuthayothin, MD. YUTHAYOTIN">Dr. Sunida Yuthayothin, MD. YUTHAYOTIN</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>34,545</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100041@LTD"><td class="name-cell" title="BEAMED CO., LTD. Kanjanapornsin">BEAMED CO., LTD. Kanjanapornsin</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">17,250</td><td class="num">17,250</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>34,500</strong></td><td class="num"><span class="badge">50,000</span></td></tr>
-<tr data-user="100274@LTD"><td class="name-cell" title="LPK Aesthetic Co., Ltd. / Privato Clinic Krudngern">LPK Aesthetic Co., Ltd. / Privato Clinic Krudngern</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>31,875</strong></td><td class="num"><span class="badge">25,000</span></td></tr>
-<tr data-user="100235@LTD"><td class="name-cell" title="Casa Prima Clinic Sherdpongtragool">Casa Prima Clinic Sherdpongtragool</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>30,840</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100161@LTD"><td class="name-cell" title="Thitima Cosmed Co., Ltd. Indra">Thitima Cosmed Co., Ltd. Indra</td><td class="num">&mdash;</td><td class="num">4,500</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>30,000</strong></td><td class="num"><span class="badge">23,000</span></td></tr>
-<tr data-user="100137@LTD"><td class="name-cell" title="CHUTHATIP MEDICA LIMITED PARTNERSHIP Yingcharoenpasuk">CHUTHATIP MEDICA LIMITED PARTNERSHIP Yingcharoenpasuk</td><td class="num">&mdash;</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>28,764</strong></td><td class="num"><span class="badge">35,000</span></td></tr>
-<tr data-user="100112@LTD"><td class="name-cell" title="Dr. Worapon Sukeewatana/Beauty Expert Clinic sukeewatana">Dr. Worapon Sukeewatana/Beauty Expert Clinic sukeewatana</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>26,340</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100717@LTD"><td class="name-cell" title="DERMALYN CO., LTD / Dr.Naphan Buarabporn Buarabporn">DERMALYN CO., LTD / Dr.Naphan Buarabporn Buarabporn</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num">&mdash;</td><td class="num"><strong>26,340</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100759@LTD"><td class="name-cell" title="THE KLINIQUE MEDICAL CLINIC Public Company Limit Public Company Limited.">THE KLINIQUE MEDICAL CLINIC Public Company Limit Public Company Limited.</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">26,340</td><td class="num"><strong>26,340</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100202@LTD"><td class="name-cell" title="Government Customer Kanjanapornsin">Government Customer Kanjanapornsin</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>22,389</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100308@LTD"><td class="name-cell" title="MOR YING CLINIC COMPANY LIMITED / Mor Ying Clini Singyabut">MOR YING CLINIC COMPANY LIMITED / Mor Ying Clini Singyabut</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>22,389</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100321@LTD"><td class="name-cell" title="Lumilux group Sasitorn">Lumilux group Sasitorn</td><td class="num">&mdash;</td><td class="num">22,389</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>22,389</strong></td><td class="num"><span class="badge">30,000</span></td></tr>
-<tr data-user="100098@LTD"><td class="name-cell" title="Dr. Kamphon Socharoentam Socharoentam">Dr. Kamphon Socharoentam Socharoentam</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>19,125</strong></td><td class="num"><span class="badge">15,000</span></td></tr>
-<tr data-user="100338@LTD"><td class="name-cell" title="SSN AESTHETIQUE COMPANY LIMITED COMPANY LIMITED">SSN AESTHETIQUE COMPANY LIMITED COMPANY LIMITED</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>19,125</strong></td><td class="num"><span class="badge">15,000</span></td></tr>
-<tr data-user="100407@LTD"><td class="name-cell" title="Meseon Kim/ Origene clinic Kim">Meseon Kim/ Origene clinic Kim</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>19,125</strong></td><td class="num"><span class="badge">15,000</span></td></tr>
-<tr data-user="100720@LTD"><td class="name-cell" title="Astraco Medical Networks Ltd Krittikakul">Astraco Medical Networks Ltd Krittikakul</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">17,250</td><td class="num">&mdash;</td><td class="num"><strong>17,250</strong></td><td class="num"><span class="badge">25,000</span></td></tr>
-<tr data-user="100351@LTD"><td class="name-cell" title="Bambini clinic/ PAWITRA SOONTHORNRAK SOONTHORNRAK">Bambini clinic/ PAWITRA SOONTHORNRAK SOONTHORNRAK</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">15,420</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>15,420</strong></td><td class="num"><span class="badge">15,000</span></td></tr>
-<tr data-user="100222@LTD"><td class="name-cell" title="APEX MEDICAL CENTER CO.,LTD. CO.LTD">APEX MEDICAL CENTER CO.,LTD. CO.LTD</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>12,750</strong></td><td class="num"><span class="badge">10,000</span></td></tr>
-<tr data-user="100634@LTD"><td class="name-cell" title="Dr. Omm Clinic Vasinanukorn">Dr. Omm Clinic Vasinanukorn</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num"><strong>12,750</strong></td><td class="num"><span class="badge">10,000</span></td></tr>
-<tr data-user="100163@LTD"><td class="name-cell" title="Patharaporn Juyyim Juyyim">Patharaporn Juyyim Juyyim</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>6,375</strong></td><td class="num"><span class="badge">5,000</span></td></tr>
-<tr data-user="100253@LTD"><td class="name-cell" title="SIRIVEJ MEDICAL CO.,LTD. SIRIVEJ MEDICAL CO.,LTD.">SIRIVEJ MEDICAL CO.,LTD. SIRIVEJ MEDICAL CO.,LTD.</td><td class="num">&mdash;</td><td class="num">6,375</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>6,375</strong></td><td class="num"><span class="badge">5,000</span></td></tr>
-<tr data-user="100074@LTD"><td class="name-cell" title="Aesthetic Answer Co.,Ltd Answer">Aesthetic Answer Co.,Ltd Answer</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100122@LTD"><td class="name-cell" title="Anda Group Noonkhan">Anda Group Noonkhan</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100127@LTD"><td class="name-cell" title="Setthakarn Attakonpan Attakonpan">Setthakarn Attakonpan Attakonpan</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100128@LTD"><td class="name-cell" title="iSky Center Co., Ltd. Wanitphakdeedecha">iSky Center Co., Ltd. Wanitphakdeedecha</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100699@LTD"><td class="name-cell" title="T.J.M Wellness">T.J.M Wellness</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100700@LTD"><td class="name-cell" title="Vansantvoord Hospital">Vansantvoord Hospital</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="100707@LTD"><td class="name-cell" title="DR. JOOU CO., LTD/ Dr.JOOU clinic">DR. JOOU CO., LTD/ Dr.JOOU clinic</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr>
-<tr data-user="Miss Wanlaya"><td class="name-cell" title="Miss Wanlaya">Miss Wanlaya</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td class="num"><strong>0</strong></td><td class="num"><span class="badge">0</span></td></tr></tbody>
+    <tbody id="tableBody"></tbody>
   </table>
   </div>
 </div>
 
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
-// --- Simple lock screen (basic deterrent only, not real security -- see note to user) ---
-(function() {
-  const PASSCODE = '1234';
-  const overlay = document.getElementById('lockOverlay');
-  const input = document.getElementById('lockInput');
-  const btn = document.getElementById('lockBtn');
-  const err = document.getElementById('lockError');
+const SUPABASE_URL = "https://gpctoduqktlarwxpbkdj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_peKS6AaMSpmpTMyCkOnjDw_hnzRjJhi";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  function unlock() {
-    overlay.classList.add('hidden');
-    document.body.classList.remove('locked');
-    try { sessionStorage.setItem('amn_pulse_unlocked', '1'); } catch (e) {}
-  }
-
-  function tryUnlock() {
-    if (input.value === PASSCODE) {
-      unlock();
-    } else {
-      err.classList.add('show');
-      input.value = '';
-      input.focus();
-    }
-  }
-
-  let alreadyUnlocked = false;
-  try { alreadyUnlocked = sessionStorage.getItem('amn_pulse_unlocked') === '1'; } catch (e) {}
-  if (alreadyUnlocked) unlock();
-
-  btn.addEventListener('click', tryUnlock);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') tryUnlock(); });
-  if (!alreadyUnlocked) setTimeout(() => input.focus(), 100);
-})();
-
-const clinics = [{"user": "100426@LTD", "name": "The Dermis Co., Ltd / Demis clinic Clinic", "q": [0, 0, 0, 0, 26340, 52680, 85395, 105360, 131700, 184380, 0], "purchase": 585855, "pulse": 665000}, {"user": "100059@LTD", "name": "Dr. Wichai Clinic Hongcharu", "q": [22389, 44778, 0, 26340, 26340, 52680, 26340, 26340, 0, 0, 0], "purchase": 225207, "pulse": 270000}, {"user": "100264@LTD", "name": "Pruksaclinic Holding Co., Ltd. Attakonpan", "q": [26340, 22389, 0, 26340, 26340, 26340, 0, 0, 26340, 26340, 0], "purchase": 180429, "pulse": 210000}, {"user": "100336@LTD", "name": "Vitallife Corporation Limited .", "q": [0, 26340, 26340, 0, 26340, 26340, 26340, 0, 26340, 0, 0], "purchase": 158040, "pulse": 180000}, {"user": "100207@LTD", "name": "Mediwelle Co., Ltd. Thanakitpathompong", "q": [20253, 6375, 37215, 0, 41760, 0, 26340, 0, 0, 6375, 15420], "purchase": 153738, "pulse": 155000}, {"user": "100456@LTD", "name": "Modiolistics clinic / DENARIN CO., LTD Visutjindaporn", "q": [0, 0, 0, 0, 0, 26340, 26340, 26340, 26340, 0, 0], "purchase": 105360, "pulse": 120000}, {"user": "100284@LTD", "name": "Viva Clinic/ Dr. Sansanee Saritvejworakul Saritvejvorakul", "q": [0, 0, 0, 15420, 0, 32715, 0, 0, 39090, 0, 0], "purchase": 87225, "pulse": 90000}, {"user": "100072@LTD", "name": "Dr. Supranee Clinic Vudhichamnong", "q": [22389, 0, 0, 0, 0, 6375, 6375, 32715, 0, 0, 0], "purchase": 67854, "pulse": 75000}, {"user": "100270@LTD", "name": "THANTHEE DERMATOL CO., LTD. Rattananukrom", "q": [0, 0, 0, 15420, 26340, 0, 0, 0, 26340, 0, 0], "purchase": 68100, "pulse": 75000}, {"user": "100190@LTD", "name": "ME PLAN DEE CO., LTD. Sriakkrapong", "q": [0, 22389, 0, 0, 0, 26340, 0, 0, 0, 0, 0], "purchase": 48729, "pulse": 60000}, {"user": "100095@LTD", "name": "Smith Clinicvejchakam Co., Ltd. (Head office) Arayaskul", "q": [0, 6375, 6375, 6375, 6375, 26340, 0, 0, 0, 0, 6375], "purchase": 58215, "pulse": 55000}, {"user": "100041@LTD", "name": "BEAMED CO., LTD. Kanjanapornsin", "q": [0, 0, 0, 0, 17250, 17250, 0, 0, 0, 0, 0], "purchase": 34500, "pulse": 50000}, {"user": "100137@LTD", "name": "CHUTHATIP MEDICA LIMITED PARTNERSHIP Yingcharoenpasuk", "q": [0, 22389, 0, 0, 0, 0, 0, 0, 0, 6375, 0], "purchase": 28764, "pulse": 35000}, {"user": "100329@LTD", "name": "YAN HEE INTERNATIONAL HOSPITAL .", "q": [0, 15420, 0, 0, 15420, 0, 0, 0, 6375, 0, 0], "purchase": 37215, "pulse": 35000}, {"user": "100278@LTD", "name": "All Inclusive Beauty Co.,Ltd. / Dr. Fruit Clinic Kunathathorn", "q": [6375, 4500, 6375, 6375, 6375, 0, 0, 6375, 0, 6375, 0], "purchase": 42750, "pulse": 33000}, {"user": "100112@LTD", "name": "Dr. Worapon Sukeewatana/Beauty Expert Clinic sukeewatana", "q": [0, 0, 0, 0, 26340, 0, 0, 0, 0, 0, 0], "purchase": 26340, "pulse": 30000}, {"user": "100162@LTD", "name": "Lively Healthcare Co., Ltd. -", "q": [0, 6375, 0, 12750, 0, 0, 12750, 0, 0, 6375, 0], "purchase": 38250, "pulse": 30000}, {"user": "100187@LTD", "name": "Dr. Sunida Yuthayothin, MD. YUTHAYOTIN", "q": [0, 0, 15420, 0, 0, 0, 0, 6375, 6375, 6375, 0], "purchase": 34545, "pulse": 30000}, {"user": "100202@LTD", "name": "Government Customer Kanjanapornsin", "q": [22389, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 22389, "pulse": 30000}, {"user": "100235@LTD", "name": "Casa Prima Clinic Sherdpongtragool", "q": [0, 0, 15420, 0, 0, 0, 0, 15420, 0, 0, 0], "purchase": 30840, "pulse": 30000}, {"user": "100308@LTD", "name": "MOR YING CLINIC COMPANY LIMITED / Mor Ying Clini Singyabut", "q": [22389, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 22389, "pulse": 30000}, {"user": "100321@LTD", "name": "Lumilux group Sasitorn", "q": [0, 22389, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 22389, "pulse": 30000}, {"user": "100717@LTD", "name": "DERMALYN CO., LTD / Dr.Naphan Buarabporn Buarabporn", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 26340, 0], "purchase": 26340, "pulse": 30000}, {"user": "100759@LTD", "name": "THE KLINIQUE MEDICAL CLINIC Public Company Limit Public Company Limited.", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26340], "purchase": 26340, "pulse": 30000}, {"user": "100274@LTD", "name": "LPK Aesthetic Co., Ltd. / Privato Clinic Krudngern", "q": [0, 0, 6375, 0, 6375, 0, 6375, 0, 6375, 6375, 0], "purchase": 31875, "pulse": 25000}, {"user": "100720@LTD", "name": "Astraco Medical Networks Ltd Krittikakul", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 17250, 0], "purchase": 17250, "pulse": 25000}, {"user": "100161@LTD", "name": "Thitima Cosmed Co., Ltd. Indra", "q": [0, 4500, 0, 6375, 0, 0, 6375, 6375, 6375, 0, 0], "purchase": 30000, "pulse": 23000}, {"user": "100098@LTD", "name": "Dr. Kamphon Socharoentam Socharoentam", "q": [0, 0, 0, 0, 6375, 0, 6375, 0, 6375, 0, 0], "purchase": 19125, "pulse": 15000}, {"user": "100338@LTD", "name": "SSN AESTHETIQUE COMPANY LIMITED COMPANY LIMITED", "q": [0, 6375, 0, 6375, 6375, 0, 0, 0, 0, 0, 0], "purchase": 19125, "pulse": 15000}, {"user": "100351@LTD", "name": "Bambini clinic/ PAWITRA SOONTHORNRAK SOONTHORNRAK", "q": [0, 0, 0, 0, 0, 0, 15420, 0, 0, 0, 0], "purchase": 15420, "pulse": 15000}, {"user": "100407@LTD", "name": "Meseon Kim/ Origene clinic Kim", "q": [0, 0, 0, 0, 6375, 6375, 6375, 0, 0, 0, 0], "purchase": 19125, "pulse": 15000}, {"user": "100222@LTD", "name": "APEX MEDICAL CENTER CO.,LTD. CO.LTD", "q": [0, 0, 0, 0, 0, 0, 6375, 0, 6375, 0, 0], "purchase": 12750, "pulse": 10000}, {"user": "100634@LTD", "name": "Dr. Omm Clinic Vasinanukorn", "q": [0, 0, 0, 0, 0, 0, 0, 0, 6375, 6375, 0], "purchase": 12750, "pulse": 10000}, {"user": "100163@LTD", "name": "Patharaporn Juyyim Juyyim", "q": [0, 0, 0, 0, 0, 0, 6375, 0, 0, 0, 0], "purchase": 6375, "pulse": 5000}, {"user": "100253@LTD", "name": "SIRIVEJ MEDICAL CO.,LTD. SIRIVEJ MEDICAL CO.,LTD.", "q": [0, 6375, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 6375, "pulse": 5000}, {"user": "100074@LTD", "name": "Aesthetic Answer Co.,Ltd Answer", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100122@LTD", "name": "Anda Group Noonkhan", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100127@LTD", "name": "Setthakarn Attakonpan Attakonpan", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100128@LTD", "name": "iSky Center Co., Ltd. Wanitphakdeedecha", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100699@LTD", "name": "T.J.M Wellness", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100700@LTD", "name": "Vansantvoord Hospital", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "100707@LTD", "name": "DR. JOOU CO., LTD/ Dr.JOOU clinic", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}, {"user": "Miss Wanlaya", "name": "Miss Wanlaya", "q": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "purchase": 0, "pulse": 0}];
-const quarters = ["2024 Q1", "2024 Q2", "2024 Q3", "2024 Q4", "2025 Q1", "2025 Q2", "2025 Q3", "2025 Q4", "2026 Q1", "2026 Q2", "2026 Q3"];
 const fmt = n => (n || 0).toLocaleString('en-US');
 
 Chart.defaults.color = '#8b98b3';
 Chart.defaults.borderColor = 'rgba(148,163,184,0.12)';
 Chart.defaults.font.size = 12;
 
-// --- Quarterly totals (all clinics combined) ---
-const qTotals = quarters.map((_, i) => clinics.reduce((s, c) => s + (c.q[i] || 0), 0));
+let clinics = [];
+let quarters = [];
+let charts = {};
 
-new Chart(document.getElementById('trendChart'), {
-  type: 'line',
-  data: {
-    labels: quarters,
-    datasets: [{
-      label: 'รายได้รวม (USD)',
-      data: qTotals,
-      borderColor: '#38bdf8',
-      backgroundColor: ctx => {
-        const g = ctx.chart.ctx.createLinearGradient(0,0,0,300);
-        g.addColorStop(0, 'rgba(56,189,248,0.35)');
-        g.addColorStop(1, 'rgba(56,189,248,0.02)');
-        return g;
-      },
-      fill: true,
-      tension: 0.35,
-      pointRadius: 4,
-      pointBackgroundColor: '#38bdf8',
-      pointBorderColor: '#0a0e1a',
-      pointBorderWidth: 2,
-      borderWidth: 2.5
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { beginAtZero: true, ticks: { callback: v => '$' + fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
-      x: { grid: { display: false } }
-    }
+function sortQuarterLabels(labels) {
+  return [...labels].sort((a, b) => {
+    const [ay, aq] = a.split(' ');
+    const [by, bq] = b.split(' ');
+    if (ay !== by) return ay.localeCompare(by);
+    return aq.localeCompare(bq);
+  });
+}
+
+async function loadData() {
+  const [{ data: clinicRows, error: e1 }, { data: revRows, error: e2 }] = await Promise.all([
+    sb.from('clinics').select('*'),
+    sb.from('quarterly_revenue').select('*')
+  ]);
+
+  if (e1 || e2) {
+    document.getElementById('appRoot').innerHTML =
+      '<div class="panel">โหลดข้อมูลไม่สำเร็จ: ' + ((e1 && e1.message) || (e2 && e2.message)) + '</div>';
+    document.getElementById('appRoot').style.display = 'block';
+    return;
   }
-});
 
-// --- Year split (groups quarters by year automatically) ---
-const yearMap = {};
-quarters.forEach((q, i) => {
-  const year = q.split(' ')[0];
-  yearMap[year] = (yearMap[year] || 0) + qTotals[i];
-});
-const yearLabels = Object.keys(yearMap);
-const yearValues = Object.values(yearMap);
-const yearPalette = ['#a78bfa', '#38bdf8', '#34d399', '#fbbf24', '#f472b6'];
-new Chart(document.getElementById('yearChart'), {
-  type: 'doughnut',
-  data: {
-    labels: yearLabels,
-    datasets: [{
-      data: yearValues,
-      backgroundColor: yearLabels.map((_, i) => yearPalette[i % yearPalette.length]),
-      borderColor: '#0a0e1a',
-      borderWidth: 4,
-      hoverOffset: 8
-    }]
-  },
-  options: {
-    responsive: true,
-    cutout: '68%',
-    plugins: {
-      legend: { position: 'bottom' },
-      tooltip: { callbacks: { label: ctx => ctx.label + ': $' + fmt(ctx.raw) } }
+  quarters = sortQuarterLabels([...new Set(revRows.map(r => r.quarter_label))]);
+
+  const revByClinic = {};
+  revRows.forEach(r => {
+    if (!revByClinic[r.clinic_user]) revByClinic[r.clinic_user] = {};
+    revByClinic[r.clinic_user][r.quarter_label] = Number(r.revenue) || 0;
+  });
+
+  clinics = clinicRows.map(c => {
+    const qMap = revByClinic[c.user_code] || {};
+    const q = quarters.map(ql => qMap[ql] || 0);
+    const purchase = q.reduce((a, b) => a + b, 0);
+    return { user: c.user_code, name: c.full_name, q, purchase, pulse: Number(c.total_pulse) || 0 };
+  });
+
+  renderDashboard();
+}
+
+function renderDashboard() {
+  const n_clinics = clinics.length;
+  const active = clinics.filter(c => c.purchase > 0);
+  const n_active = active.length;
+  const total_rev = clinics.reduce((s, c) => s + c.purchase, 0);
+  const total_pulse = clinics.reduce((s, c) => s + c.pulse, 0);
+  const avg_rev = active.length ? Math.round(total_rev / active.length) : 0;
+
+  document.getElementById('kpiTotalClinics').textContent = n_clinics;
+  document.getElementById('kpiActiveSub').textContent = 'มีรายได้ ' + n_active + ' ราย';
+  document.getElementById('kpiTotalRevenue').textContent = '$' + fmt(total_rev);
+  document.getElementById('kpiQuartersSub').textContent = 'รวม ' + quarters.length + ' ไตรมาส';
+  document.getElementById('kpiTotalPulse').textContent = fmt(total_pulse);
+  document.getElementById('kpiAvgRevenue').textContent = '$' + fmt(avg_rev);
+  document.getElementById('headerPill').textContent = 'คลินิกทั้งหมด ' + n_clinics + ' ราย · Active ' + n_active + ' ราย';
+  document.getElementById('subtitleText').textContent =
+    'ข้อมูลรายไตรมาส ' + quarters[0] + ' \u2013 ' + quarters[quarters.length - 1] + ' \u00b7 ดึงข้อมูลสดจาก Supabase';
+
+  // quarter table headers
+  const headRow = document.getElementById('tableHeadRow');
+  headRow.innerHTML = '<th data-key="name">Clinic Name</th>' +
+    quarters.map(q => `<th class="num">${q}</th>`).join('') +
+    '<th data-key="purchase" class="num">Purchase (รวม)</th><th data-key="pulse" class="num">Total Pulse</th>';
+  headRow.querySelectorAll('th[data-key]').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
+      renderTable(document.getElementById('searchBox').value);
+    });
+  });
+
+  const qTotals = quarters.map((_, i) => clinics.reduce((s, c) => s + (c.q[i] || 0), 0));
+
+  Object.values(charts).forEach(ch => ch && ch.destroy());
+  charts = {};
+
+  charts.trend = new Chart(document.getElementById('trendChart'), {
+    type: 'line',
+    data: {
+      labels: quarters,
+      datasets: [{
+        label: 'รายได้รวม (USD)',
+        data: qTotals,
+        borderColor: '#38bdf8',
+        backgroundColor: ctx => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,300);
+          g.addColorStop(0, 'rgba(56,189,248,0.35)');
+          g.addColorStop(1, 'rgba(56,189,248,0.02)');
+          return g;
+        },
+        fill: true, tension: 0.35, pointRadius: 4,
+        pointBackgroundColor: '#38bdf8', pointBorderColor: '#0a0e1a', pointBorderWidth: 2, borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: v => '$' + fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
+        x: { grid: { display: false } }
+      }
     }
-  }
-});
+  });
 
-// --- Top 10 by revenue ---
-const topRev = [...clinics].sort((a,b) => b.purchase - a.purchase).slice(0,10);
-const topRevChart = new Chart(document.getElementById('topRevChart'), {
-  type: 'bar',
-  data: {
-    labels: topRev.map(c => c.name.length > 28 ? c.name.slice(0,28)+'…' : c.name),
-    datasets: [{
-      label: 'Purchase',
-      data: topRev.map(c => c.purchase),
-      backgroundColor: '#38bdf8',
-      borderRadius: 6,
-      maxBarThickness: 18
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { beginAtZero: true, ticks: { callback: v => '$' + fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
-      y: { grid: { display: false } }
+  const yearMap = {};
+  quarters.forEach((q, i) => {
+    const year = q.split(' ')[0];
+    yearMap[year] = (yearMap[year] || 0) + qTotals[i];
+  });
+  const yearLabels = Object.keys(yearMap);
+  const yearValues = Object.values(yearMap);
+  const yearPalette = ['#a78bfa', '#38bdf8', '#34d399', '#fbbf24', '#f472b6'];
+  charts.year = new Chart(document.getElementById('yearChart'), {
+    type: 'doughnut',
+    data: {
+      labels: yearLabels,
+      datasets: [{
+        data: yearValues,
+        backgroundColor: yearLabels.map((_, i) => yearPalette[i % yearPalette.length]),
+        borderColor: '#0a0e1a', borderWidth: 4, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: ctx => ctx.label + ': $' + fmt(ctx.raw) } }
+      }
     }
-  }
-});
+  });
 
-// --- Top 10 by pulse ---
-const topPulse = [...clinics].sort((a,b) => b.pulse - a.pulse).slice(0,10);
-const topPulseChart = new Chart(document.getElementById('topPulseChart'), {
-  type: 'bar',
-  data: {
-    labels: topPulse.map(c => c.name.length > 28 ? c.name.slice(0,28)+'…' : c.name),
-    datasets: [{
-      label: 'Total Pulse',
-      data: topPulse.map(c => c.pulse),
-      backgroundColor: '#fbbf24',
-      borderRadius: 6,
-      maxBarThickness: 18
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
-      y: { grid: { display: false } }
+  const topRev = [...clinics].sort((a,b) => b.purchase - a.purchase).slice(0,10);
+  charts.topRev = new Chart(document.getElementById('topRevChart'), {
+    type: 'bar',
+    data: {
+      labels: topRev.map(c => c.name.length > 28 ? c.name.slice(0,28)+'…' : c.name),
+      datasets: [{ label: 'Purchase', data: topRev.map(c => c.purchase), backgroundColor: '#38bdf8', borderRadius: 6, maxBarThickness: 18 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
+        y: { grid: { display: false } }
+      }
     }
-  }
-});
+  });
 
-// --- Rankings for detail panel ---
-const revRanked = [...clinics].sort((a,b) => b.purchase - a.purchase);
-const pulseRanked = [...clinics].sort((a,b) => b.pulse - a.pulse);
+  const topPulse = [...clinics].sort((a,b) => b.pulse - a.pulse).slice(0,10);
+  charts.topPulse = new Chart(document.getElementById('topPulseChart'), {
+    type: 'bar',
+    data: {
+      labels: topPulse.map(c => c.name.length > 28 ? c.name.slice(0,28)+'…' : c.name),
+      datasets: [{ label: 'Total Pulse', data: topPulse.map(c => c.pulse), backgroundColor: '#fbbf24', borderRadius: 6, maxBarThickness: 18 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
 
-// --- Clinic selector (options already rendered server-side; keep JS as a fallback/sync) ---
-const selectEl = document.getElementById('clinicSelect');
-if (selectEl.options.length <= 1) {
+  const selectEl = document.getElementById('clinicSelect');
+  selectEl.length = 1;
   [...clinics].sort((a,b) => a.name.localeCompare(b.name)).forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.user;
     opt.textContent = c.name;
     selectEl.appendChild(opt);
   });
+  selectEl.onchange = e => showClinic(e.target.value);
+
+  renderTable('');
 }
 
-let clinicChart = null;
+const revRankedFn = () => [...clinics].sort((a,b) => b.purchase - a.purchase);
+const pulseRankedFn = () => [...clinics].sort((a,b) => b.pulse - a.pulse);
+
 function showClinic(userId) {
   const detail = document.getElementById('clinicDetail');
   if (!userId) { detail.classList.remove('show'); return; }
@@ -714,6 +658,8 @@ function showClinic(userId) {
 
   document.getElementById('detailPurchase').textContent = '$' + fmt(c.purchase);
   document.getElementById('detailPulse').textContent = fmt(c.pulse);
+  const revRanked = revRankedFn();
+  const pulseRanked = pulseRankedFn();
   const revRank = revRanked.findIndex(x => x.user === userId) + 1;
   const pulseRank = pulseRanked.findIndex(x => x.user === userId) + 1;
   document.getElementById('detailRevRank').textContent = 'อันดับ ' + revRank + ' จาก ' + clinics.length;
@@ -725,38 +671,25 @@ function showClinic(userId) {
     ? quarters[bestIdx] + ' ($' + fmt(c.q[bestIdx]) + ')'
     : 'ไม่มีรายได้ในช่วงนี้';
 
-  if (clinicChart) clinicChart.destroy();
-  clinicChart = new Chart(document.getElementById('clinicChart'), {
+  if (charts.clinic) charts.clinic.destroy();
+  charts.clinic = new Chart(document.getElementById('clinicChart'), {
     type: 'bar',
-    data: {
-      labels: quarters,
-      datasets: [{
-        label: c.name,
-        data: c.q,
-        backgroundColor: '#a78bfa',
-        borderRadius: 6,
-        maxBarThickness: 34
-      }]
-    },
+    data: { labels: quarters, datasets: [{ label: c.name, data: c.q, backgroundColor: '#a78bfa', borderRadius: 6, maxBarThickness: 34 }] },
     options: {
       responsive: true,
       plugins: { legend: { display: false }, title: { display: true, text: c.name, color: '#e8edf6', font: { size: 13, weight: '600' } } },
       scales: {
-        y: { beginAtZero: true, ticks: { callback: v => '$' + fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
+        y: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: 'rgba(148,163,184,0.08)' } },
         x: { grid: { display: false } }
       }
     }
   });
 
-  // sync table highlight
   document.querySelectorAll('#tableBody tr').forEach(tr => {
     tr.classList.toggle('selected-row', tr.dataset.user === userId);
   });
 }
 
-selectEl.addEventListener('change', e => showClinic(e.target.value));
-
-// --- Table ---
 let sortKey = 'purchase';
 let sortDir = -1;
 
@@ -779,25 +712,54 @@ function renderTable(filter) {
   `).join('');
   document.querySelectorAll('#tableBody tr').forEach(tr => {
     tr.addEventListener('click', () => {
-      selectEl.value = tr.dataset.user;
+      document.getElementById('clinicSelect').value = tr.dataset.user;
       showClinic(tr.dataset.user);
       document.querySelector('.select-panel').scrollIntoView({behavior:'smooth', block:'start'});
     });
   });
 }
 
-document.querySelectorAll('#dataTable thead th').forEach(th => {
-  th.addEventListener('click', () => {
-    const key = th.dataset.key;
-    if (!key) return;
-    if (sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = -1; }
-    renderTable(document.getElementById('searchBox').value);
-  });
-});
-
 document.getElementById('searchBox').addEventListener('input', e => renderTable(e.target.value));
 
-renderTable('');
+// --- Auth ---
+async function showApp() {
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('appRoot').style.display = 'block';
+  await loadData();
+}
+
+function showLogin(msg) {
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('loginError').textContent = msg || '';
+  document.getElementById('loginError').classList.toggle('show', !!msg);
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    showLogin('เข้าสู่ระบบไม่สำเร็จ: ' + error.message);
+    return;
+  }
+  await showApp();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  showLogin('');
+});
+
+(async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await showApp();
+  } else {
+    showLogin('');
+  }
+})();
 </script>
 </body>
 </html>
