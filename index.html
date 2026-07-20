@@ -456,7 +456,16 @@
 <script>
 const SUPABASE_URL = "https://gpctoduqktlarwxpbkdj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_peKS6AaMSpmpTMyCkOnjDw_hnzRjJhi";
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Use sessionStorage instead of the default localStorage so the login
+// does NOT persist once the browser/tab is closed -- every fresh visit
+// requires signing in again.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: window.sessionStorage,
+    persistSession: true,
+    autoRefreshToken: true
+  }
+});
 
 const fmt = n => (n || 0).toLocaleString('en-US');
 
