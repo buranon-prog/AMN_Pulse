@@ -229,6 +229,16 @@
   tbody tr.selected-row { background: rgba(167,139,250,0.14); }
   .num { text-align: right; font-variant-numeric: tabular-nums; }
   .name-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #tableFoot td {
+    padding: 10px;
+    font-weight: 700;
+    color: var(--text);
+    background: rgba(56,189,248,0.09);
+    border-top: 2px solid var(--accent);
+    white-space: nowrap;
+    position: sticky;
+    bottom: 0;
+  }
   .search-box {
     width: 100%;
     padding: 10px 14px;
@@ -446,6 +456,7 @@
       </tr>
     </thead>
     <tbody id="tableBody"></tbody>
+    <tfoot id="tableFoot"></tfoot>
   </table>
   </div>
 </div>
@@ -549,6 +560,12 @@ function renderDashboard() {
   });
 
   const qTotals = quarters.map((_, i) => clinics.reduce((s, c) => s + (c.q[i] || 0), 0));
+
+  // quarter sum row (footer) — grand total per quarter + overall Purchase/Pulse totals
+  const tableFoot = document.getElementById('tableFoot');
+  tableFoot.innerHTML = '<tr class="total-row"><td>รวมทั้งหมด (Total)</td>' +
+    qTotals.map(v => '<td class="num">' + fmt(v) + '</td>').join('') +
+    '<td class="num">' + fmt(total_rev) + '</td><td class="num">' + fmt(total_pulse) + '</td></tr>';
 
   Object.values(charts).forEach(ch => ch && ch.destroy());
   charts = {};
